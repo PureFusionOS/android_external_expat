@@ -1,6 +1,5 @@
-/* Read an XML document from standard input and print an element
-   outline on standard output.
-   Must be used with Expat compiled for UTF-8 output.
+/* Interface to allocation functions that will track what has or has
+   not been freed.
                             __  __            _
                          ___\ \/ /_ __   __ _| |_
                         / _ \\  /| '_ \ / _` | __|
@@ -32,88 +31,27 @@
    USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <expat.h>
-
-#ifdef XML_LARGE_SIZE
-#if defined(XML_USE_MSC_EXTENSIONS) && _MSC_VER < 1400
-#define XML_FMT_INT_MOD "I64"
-#else
-#define XML_FMT_INT_MOD "ll"
-#endif
-#else
-#define XML_FMT_INT_MOD "l"
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#define BUFFSIZE        8192
+#ifndef XML_MEMCHECK_H
+#define XML_MEMCHECK_H 1
 
-char Buff[BUFFSIZE];
+/* Allocation declarations */
 
-int Depth;
+void *tracking_malloc(size_t size);
+void tracking_free(void *ptr);
+void *tracking_realloc(void *ptr, size_t size);
 
-static void XMLCALL
-start(void *data, const char *el, const char **attr)
-{
-  int i;
-  (void)data;
+/* End-of-test check to see if unfreed allocations remain. Returns
+ * TRUE (1) if there is nothing, otherwise prints a report of the
+ * remaining allocations and returns FALSE (0).
+ */
+int tracking_report(void);
 
-  for (i = 0; i < Depth; i++)
-    printf("  ");
+#endif /* XML_MEMCHECK_H */
 
-  printf("%s", el);
-
-  for (i = 0; attr[i]; i += 2) {
-    printf(" %s='%s'", attr[i], attr[i + 1]);
-  }
-
-  printf("\n");
-  Depth++;
+#ifdef __cplusplus
 }
-
-static void XMLCALL
-end(void *data, const char *el)
-{
-  (void)data;
-  (void)el;
-
-  Depth--;
-}
-
-int
-main(int argc, char *argv[])
-{
-  XML_Parser p = XML_ParserCreate(NULL);
-  (void)argc;
-  (void)argv;
-
-  if (! p) {
-    fprintf(stderr, "Couldn't allocate memory for parser\n");
-    exit(-1);
-  }
-
-  XML_SetElementHandler(p, start, end);
-
-  for (;;) {
-    int done;
-    int len;
-
-    len = (int)fread(Buff, 1, BUFFSIZE, stdin);
-    if (ferror(stdin)) {
-      fprintf(stderr, "Read error\n");
-      exit(-1);
-    }
-    done = feof(stdin);
-
-    if (XML_Parse(p, Buff, len, done) == XML_STATUS_ERROR) {
-      fprintf(stderr, "Parse error at line %" XML_FMT_INT_MOD "u:\n%s\n",
-              XML_GetCurrentLineNumber(p),
-              XML_ErrorString(XML_GetErrorCode(p)));
-      exit(-1);
-    }
-
-    if (done)
-      break;
-  }
-  XML_ParserFree(p);
-  return 0;
-}
+#endif
