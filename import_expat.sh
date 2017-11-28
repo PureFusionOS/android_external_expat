@@ -27,7 +27,6 @@ rm run.sh.in
 rm test-driver-wrapper.sh
 rm doc/Makefile.am
 rm doc/Makefile.in
-rm doc/doc.mk
 rm expat.pc.in
 rm expat.sln
 rm expat_config.h.cmake
